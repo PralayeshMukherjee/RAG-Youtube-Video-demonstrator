@@ -23,30 +23,22 @@ current_video_id = None
 
 
 def extract_video_id(url: str) -> str:
-    parsed = urlparse(url)
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname or ""
 
-    if parsed.hostname in ("youtu.be", "www.youtu.be"):
-        video_id = parsed.path.strip("/").split("/")[0]
+    if hostname == "youtu.be":
+        return parsed_url.path.strip("/").split("/")[0] or None
 
-    elif parsed.hostname in (
-        "youtube.com",
-        "www.youtube.com",
-        "m.youtube.com",
-        "music.youtube.com",
-    ):
-        if parsed.path == "/watch":
-            video_id = parse_qs(parsed.query).get("v", [None])[0]
-        elif parsed.path.startswith(("/embed/", "/shorts/")):
-            video_id = parsed.path.split("/")[2]
-        else:
-            video_id = None
-    else:
-        video_id = None
+    if hostname.endswith("youtube.com") or hostname == "youtube-nocookie.com":
 
-    if not video_id:
-        raise ValueError("Invalid YouTube video URL")
+        if parsed_url.path == "/watch":
+            return parse_qs(parsed_url.query).get("v", [None])[0]
+        parts = parsed_url.path.strip("/").split("/")
 
-    return video_id
+        if len(parts) >= 2 and parts[0] in ("shorts", "embed", "live"):
+            return parts[1]
+
+    return None
 
 
 def process_video(url: str) -> str:
